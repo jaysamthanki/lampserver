@@ -1,0 +1,8 @@
+#!/bin/sh
+FILES="$(ls -d /var/www/* -a1)"
+
+echo "Updating libraries for sites"
+for i in $FILES
+do
+        /usr/bin/ld2chroot $i /bin/sh
+done

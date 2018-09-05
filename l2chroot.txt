@@ -1,0 +1,59 @@
+#!/bin/bash
+# Use this script to copy shared (libs) files to Apache/Lighttpd chrooted
+# jail server.
+# ----------------------------------------------------------------------------
+# Written by nixCraft <http://www.cyberciti.biz/tips/>
+# (c) 2006 nixCraft under GNU GPL v2.0+
+# + Added ld-linux support
+# + Added error checking support
+# + Added support for path in the command line
+# ----------------------------------------------------------------------------
+# Modified by Jaysam Thanki 4/15/2014 jthanki@techienetworks.com
+# ----------------------------------------------------------------------------
+# Set CHROOT directory name
+# BASE="/webroot"
+# This didn't work for me, so i made it a parameter
+
+if [ $# -ne 2 ]; then
+  echo "Syntax : $0 /chroot/path /path/to/executable"
+  echo "Example: $0 /chroot/path /usr/bin/php5-cgi"
+  exit 1
+fi
+
+BASE=$1
+
+[ ! -d $BASE ] && mkdir -p $BASE || :
+
+# iggy ld-linux* file as it is not shared one
+FILES="$(ldd $2 | awk '{ print $3 }' |egrep -v ^'\(')"
+
+echo "Copying shared files/libs to $BASE..."
+for i in $FILES
+do
+ echo $i
+  d="$(dirname $i)"
+  [ ! -d $BASE$d ] && mkdir -p $BASE$d || :
+  /bin/cp -f $i $BASE$d
+done
+
+# copy /lib/ld-linux* or /lib64/ld-linux* to $BASE/$sldlsubdir
+# get ld-linux full file location
+sldl="$(ldd $2 | grep 'ld-linux' | awk '{ print $1}')"
+
+# now get sub-dir
+sldlsubdir="$(dirname $sldl)"
+
+if [ ! -f $BASE$sldl ];
+then
+  echo "Copying $sldl $BASE$sldlsubdir..."
+  /bin/cp -f $sldl $BASE$sldlsubdir
+else
+  :
+fi
+
+/bin/cp -f /usr/lib64/libnsspem.so $1/usr/lib64/
+/bin/cp -f /usr/lib64/libsoftokn3.so $1/usr/lib64/
+/bin/cp -f /usr/lib64/libsqlite3.so.0 $1/usr/lib64/
+/bin/cp -f /lib64/libnss* $1/lib64
+/bin/cp -f /lib64/libfreeblpriv3.so $1/lib64/
+/bin/cp -f /lib64/libsoftokn3.so $1/lib64/
