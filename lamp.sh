@@ -201,6 +201,19 @@ SSLStaplingCache "shmcb:logs/stapling-cache(150000)"
 EOF
 
 echo "$output" > /etc/httpd/conf.d/05-SSL.conf
+
+# Server Status Url
+read -d '' output <<- EOF
+<Location "/.server-status">
+    SetHandler server-status
+    Require ip 127.0.0.1
+    # Uncomment and provide your secured network
+    # Require ip 10.0.0.0/8
+</Location>
+EOF
+
+echo "$output" > /etc/httpd/conf.d/06-ServerStatus.conf
+
 mv /etc/httpd/conf.d/ssl.conf /etc/httpd/conf.d/ssl.conf.disabled
 touch /etc/httpd/conf.d/ssl.conf
 
