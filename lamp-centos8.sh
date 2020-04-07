@@ -15,6 +15,11 @@ HOSTNAME=$1
 FQDN=$2
 SERVERADMINEMAIL=$3
 
+
+#HOSTNAME='centos'
+#FQDN='centos.jt.techie.gd'
+#SERVERADMINEMAIL='support@techienetworks.com'
+
 echo "Generating random password for mysql"
 MYSQLPASSWORD=`tr -cd '[:alnum:]' < /dev/urandom | fold -w30 | head -n1`
 
@@ -70,13 +75,14 @@ systemctl stop wpa_supplicant.service
 # Install EPEL
 echo "Installing EPEL"
 dnf install -y epel-release
-rpm -Uvh https://mirror.webtatic.com/dnf/el7/webtatic-release.rpm
+#rpm -Uvh https://mirror.webtatic.com/dnf/el7/webtatic-release.rpm
 
 # Install prereqs
 echo "Installing Packages"
 dnf erase -y iwl100-firmware iwl105-firmware iwl135-firmware iwl2000-firmware iwl2030-firmware iwl3160-firmware iwl1000-firmware iwl3945-firmware iwl4965-firmware iwl5000-firmware iwl5150-firmware iwl6000-firmware iwl6000g2a-firmware iwl6000g2b-firmware  iwl6050-firmware iwl7260-firmware iwl7265-firmware
 dnf group install "Development Tools" -y
-dnf install -y httpd dos2unix mariadb-server php-fpm gcc git wget net-tools mod_ssl psmisc fail2ban php-devel php-pear php-gd php-opcache php-mbstring
+dnf -y --enablerepo=PowerTools install glibc-static
+dnf install -y postfix httpd dos2unix mariadb-server php-fpm gcc git wget net-tools mod_ssl psmisc fail2ban php-devel php-pear php-gd php-opcache php-mbstring php-mysqlnd php-json php-soap
 
 # Required for chroot
 echo "Installing php timezonedb"
@@ -109,7 +115,14 @@ echo "FLUSH PRIVILEGES" | mysql
 # Certbot
 # ~~~~~~~
 echo "Installing CertBot"
-certbot register --agree-tos -m $SERVERADMINEMAIL -n
+cd
+cd build
+wget https://dl.eff.org/certbot-auto
+mv certbot-auto /usr/bin/certbot-auto
+chown root /usr/bin/certbot-auto
+chmod 0755 /usr/bin/certbot-auto
+certbot-auto register --agree-tos -m $SERVERADMINEMAIL -n
+echo "0 0,12 * * * root python3 -c 'import random; import time; time.sleep(random.random() * 3600)' && /usr/bin/certbot-auto renew -q" | sudo tee -a /etc/crontab > /dev/null
 
 # ld2chroot
 # ~~~~~~~~~
@@ -128,7 +141,7 @@ chmod 755 /usr/bin/updatewebs
 # Mini Sendmail
 # ~~~~~~~~~~~~~
 echo "Building minisendmail"
-dnf -y --enablerepo=PowerTools install glibc-static
+
 cd /root/build
 wget http://www.acme.com/software/mini_sendmail/mini_sendmail-1.3.8.tar.gz
 tar -xzvf mini_sendmail-1.3.8.tar.gz
@@ -140,12 +153,8 @@ cp mini_sendmail /usr/bin/mini_sendmail
 # Setup Apache
 # ~~~~~~~~~~~~
 echo "Setting up apache"
-mv /etc/httpd/conf.modules.d/00-systemd.conf /etc/httpd/conf.modules.d/00-systemd.conf.disabled
 mv /etc/httpd/conf.modules.d/01-cgi.conf /etc/httpd/conf.modules.d/01-cgi.conf.disabled
-mv /etc/httpd/conf.modules.d/00-mpm.conf /etc/httpd/conf.modules.d/00-mpm.conf.disabled
 mkdir /etc/httpd/conf.d/hosts
-
-echo "LoadModule mpm_event_module modules/mod_mpm_event.so" > /etc/httpd/conf.modules.d/00-mpm.conf 
 
 # turn on vhosting
 echo "Include conf.d/hosts/*" >> /etc/httpd/conf.d/01-EnableVirtualHost.conf
@@ -206,6 +215,13 @@ echo "$output" > /etc/httpd/conf.d/06-ServerStatus.conf
 
 mv /etc/httpd/conf.d/ssl.conf /etc/httpd/conf.d/ssl.conf.disabled
 touch /etc/httpd/conf.d/ssl.conf
+
+mv /etc/httpd/conf.d/welcome.conf /etc/httpd/conf.d/welcome.conf.disabled
+touch /etc/httpd/conf.d/welcome.conf
+
+mv /etc/httpd/conf.d/autoindex.conf /etc/httpd/conf.d/autoindex.conf.disabled
+touch /etc/httpd/conf.d/autoindex.conf
+
 
 # logrotate for httpd
 read -d '' output <<- EOF
