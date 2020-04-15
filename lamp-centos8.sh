@@ -154,6 +154,41 @@ cp mini_sendmail /usr/bin/mini_sendmail
 # ~~~~~~~~~~~~
 echo "Setting up apache"
 mv /etc/httpd/conf.modules.d/01-cgi.conf /etc/httpd/conf.modules.d/01-cgi.conf.disabled
+mv /etc/httpd/conf.modules.d/00-dav.conf /etc/httpd/conf.modules.d/00-dav.conf.disabled
+mv /etc/httpd/conf.modules.d/00-lua.conf /etc/httpd/conf.modules.d/00-lua.conf.disabled
+mv /etc/httpd/conf.modules.d/00-proxy.conf /etc/httpd/conf.modules.d/00-proxy.conf.disabled
+
+echo "LoadModule proxy_module modules/mod_proxy.so" >> /etc/httpd/conf.modules.d/00-proxy-stripped.conf
+echo "LoadModule proxy_fcgi_module modules/mod_proxy_fcgi.so" >> /etc/httpd/conf.modules.d/00-proxy-stripped.conf
+
+# Base Strip
+read -d '' output <<- EOF
+LoadModule access_compat_module modules/mod_access_compat.so
+LoadModule alias_module modules/mod_alias.so
+LoadModule auth_basic_module modules/mod_auth_basic.so
+LoadModule authn_file_module modules/mod_authn_file.so
+LoadModule authz_core_module modules/mod_authz_core.so
+LoadModule authz_host_module modules/mod_authz_host.so
+LoadModule authz_user_module modules/mod_authz_user.so
+LoadModule deflate_module modules/mod_deflate.so
+LoadModule dir_module modules/mod_dir.so
+LoadModule expires_module modules/mod_expires.so
+LoadModule headers_module modules/mod_headers.so
+LoadModule log_config_module modules/mod_log_config.so
+LoadModule logio_module modules/mod_logio.so
+LoadModule mime_module modules/mod_mime.so
+LoadModule rewrite_module modules/mod_rewrite.so
+LoadModule setenvif_module modules/mod_setenvif.so
+LoadModule socache_shmcb_module modules/mod_socache_shmcb.so
+LoadModule status_module modules/mod_status.so
+LoadModule unixd_module modules/mod_unixd.so
+
+EOF
+
+echo "$output" > /etc/httpd/conf.modules.d/00-base-strip.conf
+
+touch /etc/sysconfig/httpd
+
 mkdir /etc/httpd/conf.d/hosts
 
 # turn on vhosting
@@ -311,23 +346,6 @@ read -d '' output <<- EOF
 EOF
 
 echo "$output" > /etc/httpd/conf.d/template
-
-# Centos breaks httpd.service
-echo "[Unit]" > /usr/lib/systemd/system/httpd.service
-echo "Description=The Apache HTTP Server" >> /usr/lib/systemd/system/httpd.service
-echo "After=network.target remote-fs.target nss-lookup.target" >> /usr/lib/systemd/system/httpd.service
-echo "" >> /usr/lib/systemd/system/httpd.service
-echo "[Service]" >> /usr/lib/systemd/system/httpd.service
-echo "Type=forking" >> /usr/lib/systemd/system/httpd.service
-echo "EnvironmentFile=/etc/sysconfig/httpd" >> /usr/lib/systemd/system/httpd.service
-echo "ExecStart=/usr/sbin/httpd \$OPTIONS -k start" >> /usr/lib/systemd/system/httpd.service
-echo "ExecReload=/usr/sbin/httpd \$OPTIONS -k graceful" >> /usr/lib/systemd/system/httpd.service
-echo "ExecStop=/usr/sbin/httpd \$OPTIONS -k graceful-stop" >> /usr/lib/systemd/system/httpd.service
-echo "PrivateTmp=true" >> /usr/lib/systemd/system/httpd.service
-echo "" >> /usr/lib/systemd/system/httpd.service
-echo "[Install]" >> /usr/lib/systemd/system/httpd.service
-echo "WantedBy=multi-user.target" >> /usr/lib/systemd/system/httpd.service
-systemctl daemon-reload
 
 # PHP-FPM Template
 read -d '' output <<- EOF
