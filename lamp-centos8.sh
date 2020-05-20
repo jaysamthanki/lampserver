@@ -471,7 +471,7 @@ echo "AcceptEnv LC_IDENTIFICATION LC_ALL LANGUAGE" >> sshd_config24
 echo "AcceptEnv XMODIFIERS" >> sshd_config24
 echo "X11Forwarding yes" >> sshd_config24
 echo "ChrootDirectory /var/www/%u" >> sshd_config24
-echo "Subsystem       sftp    internal-sftp" >> sshd_config24
+echo "Subsystem       sftp    internal-sftp -u 0002" >> sshd_config24
 
 # Startup on reboot
 echo "/usr/sbin/sshd -f /etc/ssh/sshd_config24" >> /etc/rc.d/rc.local
