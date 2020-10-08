@@ -173,6 +173,7 @@ LoadModule authz_user_module modules/mod_authz_user.so
 LoadModule deflate_module modules/mod_deflate.so
 LoadModule dir_module modules/mod_dir.so
 LoadModule expires_module modules/mod_expires.so
+LoadModule filter_module modules/mod_filter.so
 LoadModule headers_module modules/mod_headers.so
 LoadModule log_config_module modules/mod_log_config.so
 LoadModule logio_module modules/mod_logio.so
@@ -199,6 +200,20 @@ echo "ServerName $HOSTNAME" > /etc/httpd/conf.d/03-ServerName.conf
 
 # Server Admin settings
 echo "ServerAdmin $SERVERADMINEMAIL" > /etc/httpd/conf.d/04-ServerAdmin.conf
+
+# Turn on HTTP2
+echo "Protocols h2 h2c http/1.1" > /etc/httpd/conf.d/07-http2.conf
+
+# Turn on gzip
+echo "AddOutputFilterByType DEFLATE text/plain" > /etc/httpd/conf.d/08-gzip.conf
+echo "AddOutputFilterByType DEFLATE text/html" >> /etc/httpd/conf.d/08-gzip.conf
+echo "AddOutputFilterByType DEFLATE text/xml" >> /etc/httpd/conf.d/08-gzip.conf
+echo "AddOutputFilterByType DEFLATE text/css" >> /etc/httpd/conf.d/08-gzip.conf
+echo "AddOutputFilterByType DEFLATE application/xml" >> /etc/httpd/conf.d/08-gzip.conf
+echo "AddOutputFilterByType DEFLATE application/xhtml+xml" >> /etc/httpd/conf.d/08-gzip.conf
+echo "AddOutputFilterByType DEFLATE application/rss+xml" >> /etc/httpd/conf.d/08-gzip.conf
+echo "AddOutputFilterByType DEFLATE application/javascript" >> /etc/httpd/conf.d/08-gzip.conf
+echo "AddOutputFilterByType DEFLATE application/x-javascript" >> /etc/httpd/conf.d/08-gzip.conf
 
 # SSL
 read -d '' output <<- EOF
