@@ -77,8 +77,8 @@ echo "Installing EPEL"
 dnf install -y epel-release
 
 echo "Installing REMI"
-dnf install https://rpms.remirepo.net/enterprise/remi-release-8.rpm
-dnf module enable php:remi-7.4
+dnf install https://rpms.remirepo.net/enterprise/remi-release-8.rpm -y
+dnf module enable php:remi-7.4 -y
 
 # Install prereqs
 echo "Installing Packages"
@@ -378,7 +378,7 @@ listen.group = USER
 listen.mode = 0666
 
 pm = ondemand
-pm.max_children = 5
+pm.max_children = 25
 pm.status_path = /php-fpm/status
 slowlog = /logs/phpslow.log
 chroot = /var/www/USER
