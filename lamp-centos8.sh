@@ -75,7 +75,10 @@ systemctl stop wpa_supplicant.service
 # Install EPEL
 echo "Installing EPEL"
 dnf install -y epel-release
-#rpm -Uvh https://mirror.webtatic.com/dnf/el7/webtatic-release.rpm
+
+echo "Installing REMI"
+dnf install https://rpms.remirepo.net/enterprise/remi-release-8.rpm
+dnf module enable php:remi-7.4
 
 # Install prereqs
 echo "Installing Packages"
