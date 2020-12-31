@@ -325,7 +325,7 @@ read -d '' output <<- EOF
         CustomLog logs/USER/access.log combined
 
         <Proxy "unix:/var/www/USER/tmp/php.sock|fcgi://USER">
-                ProxySet disablereuse=off
+                ProxySet disablereuse=on
         </Proxy>
 
         <FilesMatch \.php$>
@@ -377,9 +377,15 @@ listen.owner = USER
 listen.group = USER
 listen.mode = 0666
 
-pm = ondemand
+pm = dynamic
 pm.max_children = 25
+pm.start_servers = 1
+pm.min_spare_servers = 1
+pm.max_spare_servers = 2
+pm.max_requests = 200
+
 pm.status_path = /php-fpm/status
+
 slowlog = /logs/phpslow.log
 chroot = /var/www/USER
 php_value[session.save_handler] = files
