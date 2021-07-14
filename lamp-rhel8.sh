@@ -41,51 +41,28 @@ echo "SELINUX=disabled" > /etc/sysconfig/selinux
 
 echo "Turning off services"
 # Turn off unneeded services
-systemctl disable abrt-ccpp.service
-systemctl disable abrt-oops.service
-systemctl disable abrtd.service
 systemctl disable atd.service
 systemctl disable auditd.service
-systemctl disable avahi-daemon.service
-systemctl disable avahi-daemon.socket
-systemctl disable fprintd.service
-systemctl disable iprdump.service
-systemctl disable iprinit.service
-systemctl disable iprupdate.service
 systemctl disable kdump.service
-systemctl disable plymouth-start.service
-systemctl disable polkit.service
-systemctl disable wpa_supplicant.service
-
-systemctl stop abrt-ccpp.service
-systemctl stop abrt-oops.service
-systemctl stop abrtd.service
 systemctl stop atd.service
 systemctl stop auditd.service
-systemctl stop avahi-daemon.service
-systemctl stop avahi-daemon.socket
-systemctl stop fprintd.service
-systemctl stop iprdump.service
-systemctl stop iprinit.service
-systemctl stop iprupdate.service
 systemctl stop kdump.service
-systemctl stop plymouth-start.service
-systemctl stop polkit.service
-systemctl stop wpa_supplicant.service
 
 # Install EPEL
 echo "Installing EPEL"
-dnf install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
+dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
+
+# Fix EPEL v8 problem
+sed -i 's/$releasever/8/g' /etc/yum.repos.d/epel*.repo
 
 echo "Installing REMI"
 dnf install https://rpms.remirepo.net/enterprise/remi-release-8.rpm -y
-dnf module enable php:remi-7.4 -y
+dnf module enable php:remi-8.0 -y
 
 # Install prereqs
 echo "Installing Packages"
-dnf erase -y iwl100-firmware iwl105-firmware iwl135-firmware iwl2000-firmware iwl2030-firmware iwl3160-firmware iwl1000-firmware iwl3945-firmware iwl4965-firmware iwl5000-firmware iwl5150-firmware iwl6000-firmware iwl6000g2a-firmware iwl6000g2b-firmware  iwl6050-firmware iwl7260-firmware iwl7265-firmware
 dnf group install "Development Tools" -y
-dnf install -y postfix httpd dos2unix mariadb-server php-fpm gcc git wget net-tools mod_ssl psmisc fail2ban php-devel php-pear php-gd php-opcache php-mbstring php-mysqlnd php-json php-soap glibc-static
+dnf install postfix httpd dos2unix mariadb-server php-fpm gcc git wget net-tools mod_ssl psmisc fail2ban php-devel php-pear php-gd php-opcache php-mbstring php-mysqlnd php-json php-soap glibc-static -y
 
 # Required for chroot
 echo "Installing php timezonedb"
@@ -120,12 +97,9 @@ echo "FLUSH PRIVILEGES" | mysql
 echo "Installing CertBot"
 cd
 cd build
-wget https://dl.eff.org/certbot-auto
-mv certbot-auto /usr/bin/certbot-auto
-chown root /usr/bin/certbot-auto
-chmod 0755 /usr/bin/certbot-auto
-certbot-auto register --agree-tos -m $SERVERADMINEMAIL -n
-echo "0 0,12 * * * root python3 -c 'import random; import time; time.sleep(random.random() * 3600)' && /usr/bin/certbot-auto renew -q" | sudo tee -a /etc/crontab > /dev/null
+dnf install certbot python3-certbot-apache -y
+certbot register --agree-tos -m $SERVERADMINEMAIL -n
+echo "0 0,12 * * * root python3 -c 'import random; import time; time.sleep(random.random() * 3600)' && certbot renew -q" | sudo tee -a /etc/crontab > /dev/null
 
 # ld2chroot
 # ~~~~~~~~~
