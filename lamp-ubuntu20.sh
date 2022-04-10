@@ -121,9 +121,20 @@ ln -s /var/log/apache2/ /etc/apache2/logs
 
 # Mod Sec
 mv /etc/modsecurity/modsecurity.conf-recommended /etc/modsecurity/modsecurity.conf
+apt -y remove modsecurity-crs
 
+read -d '' output <<- EOF
 SecRuleEngine On
 SecAuditLogParts ABCEFHJKZ
+IncludeOptional /etc/apache2/modsecurity-crs/crs-setup.conf
+IncludeOptional /etc/apache2/modsecurity-crs/rules/*.conf
+EOF
+
+echo "$output" > /etc/modsecurity/techie.conf
+
+mkdir /etc/apache2/modsecurity-crs/
+git clone https://github.com/coreruleset/coreruleset /etc/apache2/modsecurity-crs
+mv /etc/apache2/modsecurity-crs/crs-setup.conf.example /etc/apache2/modsecurity-crs/crs-setup.conf
 
 cd
 cd build
