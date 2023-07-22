@@ -33,16 +33,16 @@ cd /root/build
 # Install prereqs
 echo "Installing Packages"
 apt update
-apt install -y net-tools postfix apache2 libapache2-mod-security2 dos2unix mariadb-server gcc fail2ban php8.1-fpm php8.1-mbstring php8.1-opcache php8.1-mbstring php8.1-mysql php8.1-intl php8.1-soap php8.1-xml php-pear php8.1-zip php8.1-gd php8.1-dev php8.1-curl php8.1-imagick python3-certbot-apache 
+apt install -y net-tools postfix apache2 libapache2-mod-security2 \
+dos2unix mariadb-server \
+gcc fail2ban php8.1-fpm php8.1-mbstring \
+php8.1-opcache php8.1-mbstring php8.1-mysql \
+php8.1-intl php8.1-soap php8.1-xml php-pear php8.1-zip php8.1-gd php8.1-dev php8.1-curl \
+python3-certbot-apache dotnet-sdk-6.0 aspnetcore-runtime-6.0
 
 # setup postfix to use the hostname and install as internet site
 
 # PHP Setup
-a2enmod proxy_fcgi setenvif
-a2enconf php8.1-fpm
-a2enmod headers
-a2enmod security2
-
 echo "Installing php timezonedb"
 pecl channel-update pecl.php.net > /dev/null
 pecl install timezonedb 
@@ -86,14 +86,6 @@ mv -f l2chroot.txt /usr/bin/ld2chroot
 dos2unix /usr/bin/ld2chroot
 chmod 755 /usr/bin/ld2chroot
 
-# Update Webs
-# ~~~~~~~~~~~
-cd
-cd build
-wget https://raw.githubusercontent.com/jaysamthanki/lampserver/master/updatewebs.txt
-mv -f updatewebs.txt /usr/bin/updatewebs
-dos2unix /usr/bin/updatewebs
-chmod 755 /usr/bin/updatewebs
 
 # Mini Sendmail
 # ~~~~~~~~~~~~~
@@ -121,26 +113,26 @@ dos2unix /usr/sbin/make-dummy-cert.sh
 ln -s /var/log/apache2/ /etc/apache2/logs
 
 # Mod Sec
-mv /etc/modsecurity/modsecurity.conf-recommended /etc/modsecurity/modsecurity.conf
-apt -y remove modsecurity-crs
+#mv /etc/modsecurity/modsecurity.conf-recommended /etc/modsecurity/modsecurity.conf
+#apt -y remove modsecurity-crs
 
-read -d '' output <<- EOF
-SecRuleEngine On
-SecAuditLogParts ABCEFHJKZ
-IncludeOptional /etc/apache2/modsecurity-crs/crs-setup.conf
-IncludeOptional /etc/apache2/modsecurity-crs/rules/*.conf
-EOF
+#read -d '' output <<- EOF
+#SecRuleEngine On
+#SecAuditLogParts ABCEFHJKZ
+#IncludeOptional /etc/apache2/modsecurity-crs/crs-setup.conf
+#IncludeOptional /etc/apache2/modsecurity-crs/rules/*.conf
+#EOF
 
-echo "$output" > /etc/modsecurity/techie.conf
+#echo "$output" > /etc/modsecurity/techie.conf
 
-mkdir /etc/apache2/modsecurity-crs/
-git clone https://github.com/coreruleset/coreruleset /etc/apache2/modsecurity-crs
-mv /etc/apache2/modsecurity-crs/crs-setup.conf.example /etc/apache2/modsecurity-crs/crs-setup.conf
+#mkdir /etc/apache2/modsecurity-crs/
+#git clone https://github.com/coreruleset/coreruleset /etc/apache2/modsecurity-crs
+#mv /etc/apache2/modsecurity-crs/crs-setup.conf.example /etc/apache2/modsecurity-crs/crs-setup.conf
 
-cd
-cd build
-wget https://github.com/coreruleset/coreruleset/archive/v3.3.0.tar.gz
-tar xvf v3.3.0.tar.gz
+#cd
+#cd build
+#wget https://github.com/coreruleset/coreruleset/archive/v3.3.0.tar.gz
+#tar xvf v3.3.0.tar.gz
 
 make-dummy-cert.sh /etc/ssl/certs/$FQDN.crt
 
@@ -149,6 +141,11 @@ a2enmod headers
 a2enmod rewrite
 a2enmod socache_shmcb
 a2enmod ssl
+a2enmod proxy_fcgi setenvif
+a2enconf php8.1-fpm
+a2enmod headers
+a2enmod cache
+#a2enmod security2
 
 read -d '' output <<- EOF
 <Directory /data/>
@@ -254,79 +251,6 @@ mv /etc/php/8.1/fpm/pool.d/www.conf /etc/php/8.1/fpm/pool.d/www.conf.disabled
 touch /etc/php/8.1/fpm/pool.d/www.conf
 systemctl enable php8.1-fpm.service
 
-
-
-# create a shortcut script to create webs
-# usage: createweb username domainname.tld
-read -d '' output <<- EOF
-#!/bin/sh
-if [ \$# -ne 3 ]
-then
-  echo Usage: createweb {username} {websitedomainname} {password}
-  echo Example: createweb somedomainuser somedomain.com password
-  exit 1
-fi
-echo Creating User...
-useradd -b /var/www -d /var/www/\$1 -m -k /opt/skel -s /bin/false \$1
-chmod 755 /var/www/\$1
-mkdir /var/www/\$1/\$2
-echo Setting up Password...
-echo "\$3" | passwd --stdin \$1
-echo "\$3" > /var/www/\$1/password
-chmod 600 /var/www/\$1/password
-echo Setting Up Apache...
-ln -s /var/www/\$1/logs /var/log/httpd/\$1
-cp /etc/httpd/conf.d/template /etc/httpd/conf.d/hosts/\$2
-replace DOMAIN \$2 -- /etc/httpd/conf.d/hosts/\$2
-replace USER \$1 -- /etc/httpd/conf.d/hosts/\$2
-echo Setting up PHP-FPM...
-cp /etc/php-fpm.d/phpfpm.template /etc/php-fpm.d/\$2.conf
-replace USER \$1 -- /etc/php-fpm.d/\$2.conf
-replace DOMAIN \$2 -- /etc/php-fpm.d/\$2.conf
-echo Setting up MySQL...
-echo "CREATE DATABASE \$1;" | mysql
-echo "GRANT ALL PRIVILEGES ON \$1.* to \$1@'%' identified by '\$3';" | mysql
-echo Setting up chroot jail...
-mkdir /var/www/\$1/dev
-mkdir /var/www/\$1/bin
-mkdir /var/www/\$1/etc
-mkdir /var/www/\$1/lib64
-mkdir -p /var/www/\$1/usr/lib64
-mkdir -p /var/www/\$1/etc/pki/nssdb
-mkdir -p /var/www/\$1/var/lib/php/session
-mkdir -p /var/www/\$1/usr/share
-mknod -m 444 /var/www/\$1/dev/random c 1 8
-mknod -m 444 /var/www/\$1/dev/urandom c 1 9
-cp /etc/hosts /var/www/\$1/etc/
-cp /etc/resolv.conf /var/www/\$1/etc/
-cp /etc/localtime /var/www/\$1/etc/
-cp /etc/networks /var/www/\$1/etc/
-cp /etc/protocols /var/www/\$1/etc/
-cp /etc/services /var/www/\$1/etc/
-cp /etc/nsswitch.conf /var/www/\$1/etc/
-cp /etc/host.conf /var/www/\$1/etc/
-cp /etc/pki/nssdb/* /var/www/\$1/etc/pki/nssdb/
-cp /lib64/libnss* /var/www/\$1/lib64/
-cp /usr/lib64/libnsspem.so /var/www/\$1/usr/lib64/
-cp /usr/lib64/libsoftokn3.so /var/www/\$1/usr/lib64/
-cp /usr/lib64/libsqlite3.so.0 /var/www/\$1/usr/lib64/
-cp /usr/bin/mini_sendmail /var/www/\$1/bin/sendmail
-cp /bin/sh /var/www/\$1/bin/sh
-cp /lib64/libfreeblpriv3.so /var/www/\$1/lib64/
-cp /lib64/libsoftokn3.so /var/www/\$1/lib64/
-ln -s /usr/share/zoneinfo  /var/www/\$1/usr/share/zoneinfo
-echo "127.0.0.1	\$2 www.\$2 \$1.$FQDN"	>> /var/www/\$1/etc/hosts
-ld2chroot /var/www/\$1 /bin/sh
-chown \$1.\$1 -R /var/www/\$1
-chown root.root /var/www/\$1
-echo Reloading Services...
-service httpd reload
-service php-fpm reload
-EOF
-
-echo "$output" > /usr/sbin/createweb
-chmod 700 /usr/sbin/createweb
-
 # chroot jail ssh
 cd /etc/ssh
 
@@ -351,53 +275,8 @@ echo "Subsystem       sftp    internal-sftp -u 0002" >> sshd_config24
 echo "/usr/sbin/sshd -f /etc/ssh/sshd_config24" >> /etc/rc.local
 chmod +x /etc/rc.local
 
-
-# Script to auto install Word Press
-# ~~~~~
-read -d '' output <<- EOF
-#!/bin/sh
-if [ \$# -ne 2 ]
-then
-  echo Usage: installwp {username} {domain}
-  echo Example: installwp test test.com
-  exit 1
-fi
-
-cd /var/www/\$1
-wget https://wordpress.org/latest.tar.gz
-tar -xzf latest.tar.gz
-rm -rf latest.tar.gz
-mv /var/www/\$1/wordpress/* /var/www/\$1/\$2
-rm -rf /var/www/\$1/wordpress
-
-
-cp /var/www/\$1/\$2/wp-config-sample.php /var/www/\$1/\$2/wp-config.php
-perl -pi -e "s/database_name_here/\$1/g" /var/www/\$1/\$2/wp-config.php
-perl -pi -e "s/username_here/\$1/g" /var/www/\$1/\$2/wp-config.php
-perl -pi -e "s/password_here/\`cat /var/www/\$1/password\`/g" /var/www/\$1/\$2/wp-config.php
-perl -pi -e "s/localhost/127.0.0.1/g" /var/www/\$1/\$2/wp-config.php
-perl -i -pe'
-  BEGIN {
-    @chars = ("a" .. "z", "A" .. "Z", 0 .. 9);
-    push @chars, split //, "!@#%^&*()-_ []{}<>~\`+=,.;:/?|";
-    sub salt { join "", map \$chars[ rand @chars ], 1 .. 64 }
-  }
-  s/put your unique phrase here/salt()/ge
-' /var/www/\$1/\$2/wp-config.php
-
-chown \$1.\$1 /var/www/\$1/\$2 -R
-EOF
-
-echo "$output" > /usr/sbin/installwp
-chmod 700 /usr/sbin/installwp
-
 # Setup Postfix to accept email from all ips
 postconf -e inet_interfaces=all
-
-#createweb test test.com $MYSQLPASSWORD
-#systemctl start php-fpm.service
-#systemctl start httpd.service
-
 
 # Fail2ban
 read -d '' output <<- EOF
@@ -430,9 +309,4 @@ systemctl restart firewalld.service
 
 ### .net Core 6
 echo "Installing Dot Net Core 6"
-wget https://packages.microsoft.com/config/ubuntu/22.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
-sudo dpkg -i packages-microsoft-prod.deb
-rm packages-microsoft-prod.deb
-sudo apt-get update;   sudo apt-get install -y apt-transport-https &&   sudo apt-get update &&   sudo apt-get install -y dotnet-sdk-6.0
-apt-get install -y aspnetcore-runtime-6.0
-dotnet dev-certs https
+dotnet dev-certs https --trust
