@@ -86,6 +86,14 @@ mv -f l2chroot.txt /usr/bin/ld2chroot
 dos2unix /usr/bin/ld2chroot
 chmod 755 /usr/bin/ld2chroot
 
+# Update Webs
+# ~~~~~~~~~~~
+cd
+cd build
+wget https://raw.githubusercontent.com/jaysamthanki/lampserver/master/updatewebs.txt
+mv -f updatewebs.txt /usr/bin/updatewebs
+dos2unix /usr/bin/updatewebs
+chmod 755 /usr/bin/updatewebs
 
 # Mini Sendmail
 # ~~~~~~~~~~~~~
@@ -278,6 +286,11 @@ chmod +x /etc/rc.local
 # Setup Postfix to accept email from all ips
 postconf -e inet_interfaces=all
 
+#createweb test test.com $MYSQLPASSWORD
+#systemctl start php-fpm.service
+#systemctl start httpd.service
+
+
 # Fail2ban
 read -d '' output <<- EOF
 [sshd]
@@ -309,4 +322,5 @@ systemctl restart firewalld.service
 
 ### .net Core 6
 echo "Installing Dot Net Core 6"
+
 dotnet dev-certs https --trust
